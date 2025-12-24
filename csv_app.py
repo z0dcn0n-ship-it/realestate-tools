@@ -25,11 +25,17 @@ def evaluate_property(price, rent, management_fee):
 results = []
 with open("properties.csv", newline="") as f:
     reader = csv.DictReader(f)
-    for row in reader:
-        price = float(row["price"])
-        rent = float(row["rent"])
-        fee = float(row["fee"])
+    for i, row in enumerate(reader, start=1):
+        try:
+            price = float(row["price"])
+            rent = float(row["rent"])
+            fee = float(row["fee"])
+        except (ValueError, KeyError) as e:
+            print(f"[警告] {i}行目スキップ: {e} / {row}")
+            continue
+
         results.append(evaluate_property(price, rent, fee))
+
 
 # 利回りが高い順
 results = sorted(results, key=lambda x: x["yield_rate"], reverse=True)
@@ -45,3 +51,27 @@ print("\n=== 検討のみ ===")
 for r in results:
     if r["decision"] == "検討":
         print(f"価格 {r['price']:,.0f} 円 / 利回り {r['yield_rate']:.2f} %")
+
+# ===== CSV書き出し =====
+import csv
+
+# 全結果を書き出し
+with open("results_all.csv", "w", newline="") as f:
+    fieldnames = ["price", "rent", "fee", "monthly_net", "annual_net", "yield_rate", "decision"]
+    writer = csv.DictWriter(f, fieldnames=fieldnames)
+    writer.writeheader()
+    for r in results:
+        writer.writerow(r)
+
+# 検討のみを書き出し
+with open("results_kento.csv", "w", newline="") as f:
+    fieldnames = ["price", "yield_rate", "decision"]
+    writer = csv.DictWriter(f, fieldnames=fieldnames)
+    writer.writeheader()
+    for r in results:
+        if r["decision"] == "検討":
+            writer.writerow({
+                "price": r["price"],
+                "yield_rate": r["yield_rate"],
+                "decision": r["decision"]
+            })
